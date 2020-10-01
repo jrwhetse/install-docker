@@ -405,12 +405,24 @@ do_install() {
                                 fi
 				$sh_c "$pkg_manager install -y -q $pre_reqs"
 				$sh_c "$config_manager --add-repo $yum_repo"
+				
+				#jrw - added sed. replaces 7Server with 7 for rhel
+                                #https://download.docker.com/linux/centos/docker-ce.repo tries to use 7server in its path
+                                # and 7server doesnt exist
+                                sed -i 's/$releasever/7/g' /etc/yum.repos.d/docker-ce.repo
+				
 				if [ "$CHANNEL" != "stable" ]; then
 					echo "Info: Enabling channel '$CHANNEL' for docker-ce repo"
 					$sh_c "$config_manager $enable_channel_flag docker-ce-$CHANNEL"
 				fi
 				$sh_c "$pkg_manager makecache fast"
 				$sh_c "$pkg_manager install -y -q docker-ce-${docker_version} docker-ce-cli-${docker_version}"
+				
+				#jrw - added symlink
+                                cd /usr/libexec/docker/
+                                sudo ln -s docker-runc-current docker-runc
+                                sudo ln -s /usr/libexec/docker/docker-runc-current /usr/bin/docker-runc
+				
 				if [ -d '/run/systemd/system' ]; then
 					$sh_c 'service docker start'
 				else
